@@ -2,11 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const dotenv = require("dotenv");
-dotenv.config()
+dotenv.config();
 const cloudinary = require("cloudinary").v2;
-
-
-
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_API_NAME,
@@ -17,7 +14,6 @@ cloudinary.config({
 // Create account
 const createAccount = async (req, res) => {
   try {
-   
     let image;
     if (req.files["image"][0]) {
       image = await cloudinary.uploader
@@ -81,7 +77,16 @@ const login = async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    return res.status(200).json({ message: "Login successful", token });
+    return res.status(200).json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture,
+      },
+      token,
+    });
   } catch (error) {
     console.error("Error during login:", error);
     return res.status(500).json({ message: "Server error" });

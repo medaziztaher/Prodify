@@ -4,7 +4,7 @@ const Authetification = require("../controllers/authController");
 const upload = require("../middlewares/uploadMiddleware");
 
 router.post(
-  "/reg",
+  "/register",
   upload.fields([{ name: "image", maxCount: 1 }]),
   Authetification.createAccount
 );
