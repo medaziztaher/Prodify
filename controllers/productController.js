@@ -11,12 +11,12 @@ cloudinary.config({
 
 const addProduct = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Only admins can add products.",
-      });
-    }
+    // if (req.user.role !== "admin") {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Access denied. Only admins can add products.",
+    //   });
+    // }
 
     const { name, description, price, category, stock } = req.body;
     let image;
@@ -61,12 +61,12 @@ const addProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Only admins can delete products.",
-      });
-    }
+    // if (req.user.role !== "admin") {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Access denied. Only admins can delete products.",
+    //   });
+    // }
     const { id } = req.params;
 
     const deletedProduct = await productModel.findByIdAndDelete(id);
@@ -94,12 +94,12 @@ const deleteProduct = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Only admins can update products.",
-      });
-    }
+    // if (req.user.role !== "admin") {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Access denied. Only admins can update products.",
+    //   });
+    // }
 
     const { id } = req.params;
 
@@ -152,6 +152,61 @@ const updateProduct = async (req, res) => {
   }
 };
 
+const getProducts = async (req, res) => {
+  try {
+    // Pagination parameters
+    const { page = 1, pageSize = 10, sortBy, sortOrder } = req.query;
+
+    // Query filters
+    let query = {};
+
+    if (req.query.category) {
+      query.category = req.query.category;
+    }
+    if (req.query.minPrice !== undefined && req.query.maxPrice !== undefined) {
+      query.price = { $gte: req.query.minPrice, $lte: req.query.maxPrice };
+    } else if (req.query.minPrice !== undefined) {
+      query.price = { $gte: req.query.minPrice };
+    } else if (req.query.maxPrice !== undefined) {
+      query.price = { $lte: req.query.maxPrice };
+    }
+    if (req.query.inStock !== undefined) {
+      query.stock = req.query.inStock === "true" ? { $gt: 0 } : 0;
+    }
+    if (req.query.name) {
+      query.name = { $regex: req.query.name, $options: "i" };
+    }
+
+    // Sorting criteria
+    let sortCriteria = {};
+    if (sortBy) {
+      sortCriteria[sortBy] = sortOrder === "desc" ? -1 : 1;
+    }
+
+    // Fetch products with filters, sorting, and pagination
+    const products = await productModel
+      .find(query)
+      .sort(sortCriteria)
+      .skip(page * parseInt(pageSize))
+      .limit(parseInt(pageSize));
+
+    // Total count for filtered products
+    const totalProducts = await productModel.countDocuments(query);
+
+    // Response
+    res.status(200).json({
+      products,
+      totalProducts,
+      totalPages: Math.ceil(totalProducts / pageSize),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching products.", error: error.message });
+  }
+};
+
 const getProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -193,42 +248,42 @@ const getAllProducts = async (req, res) => {
 
 const getProductsWithFilter = async (req, res) => {
   try {
-      let query = {};
+    let query = {};
 
-      
-      if (req.query.category) {
-          query.category = req.query.category; 
-      }
-      if (req.query.minPrice !== undefined && req.query.maxPrice !== undefined) {
-          query.price = { $gte: req.query.minPrice, $lte: req.query.maxPrice }; 
-      } else if (req.query.minPrice !== undefined) {
-          query.price = { $gte: req.query.minPrice }; 
-      } else if (req.query.maxPrice !== undefined) {
-          query.price = { $lte: req.query.maxPrice }; 
-      }
-      if (req.query.inStock !== undefined) {
-          query.stock = req.query.inStock ? { $gt: 0 } : 0; 
-      }
+    if (req.query.category) {
+      query.category = req.query.category;
+    }
+    if (req.query.minPrice !== undefined && req.query.maxPrice !== undefined) {
+      query.price = { $gte: req.query.minPrice, $lte: req.query.maxPrice };
+    } else if (req.query.minPrice !== undefined) {
+      query.price = { $gte: req.query.minPrice };
+    } else if (req.query.maxPrice !== undefined) {
+      query.price = { $lte: req.query.maxPrice };
+    }
+    if (req.query.inStock !== undefined) {
+      query.stock = req.query.inStock ? { $gt: 0 } : 0;
+    }
 
-      if (req.query.name) {
-          query.name = { $regex: req.query.name, $options: "i" }; 
-      }
+    if (req.query.name) {
+      query.name = { $regex: req.query.name, $options: "i" };
+    }
 
-      let sortCriteria = {};
-      if (req.query.sortBy) {
-          sortCriteria[req.query.sortBy] = req.query.sortOrder === "desc" ? -1 : 1; 
-      }
+    let sortCriteria = {};
+    if (req.query.sortBy) {
+      sortCriteria[req.query.sortBy] = req.query.sortOrder === "desc" ? -1 : 1;
+    }
 
-      const products = await productModel.find(query).sort(sortCriteria);
+    const products = await productModel.find(query).sort(sortCriteria);
 
-      res.status(200).json({ products, total: products.length });
+    res.status(200).json({ products, total: products.length });
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
 const productController = {
   addProduct,
+  getProducts,
   deleteProduct,
   updateProduct,
   getProduct,
